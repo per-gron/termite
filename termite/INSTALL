@@ -1,0 +1,18 @@
+# These are the installation instructions for Termite
+
+#1 Install the latest Gambit-C
+
+#2 Get Termite and untar it in Gambit's lib/ directory
+
+cd /usr/lobal/Gambit-C/current/lib
+
+wget http://toute.ca/termite.tar.gz
+tar -xzvf termite.tar.gz
+
+# Optional:
+# Manually copy the "tsi" file from Termite's directory to 
+# Gambit's "bin" directory
+# That's for convenience so you can start a console that acts 
+# like gsi but has Termite already loaded
+
+# All done!

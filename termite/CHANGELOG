@@ -1,0 +1,48 @@
+========================================================================
+Mon Jun 16 00:22:38 2008
+
+- Clean up code, remove experimental nameserver stuff as it is not
+  really needed
+
+========================================================================
+Thu Mar 13 00:39:57 2008
+
+- Cleaned up initialization, so that no set! would be used
+- A node will now properly report an error in the primordial thread
+  if the tcp port is already used
+
+
+========================================================================
+Tue Mar 11 01:01:29 2008
+
+- Fixed a problem with MATCH macro
+- TAGS are now unique objects and only get an UUID assigned if
+  "exported" (ie sent to another node) to avoid the creation of symbols
+  that will not be garbage collected (bug reported by Nicholas Walton)
+
+
+========================================================================
+Wed Feb 13 22:21:59 2008
+
+- Removed useless code from match.scm that was impeding compilation 
+  (reported by Guillaume Cartier)
+- Termite is now licensed under the same term as Gambit is, as it will
+  simplify inter-operation with Gambit's code 
+
+========================================================================
+
+Wed Feb  6 19:45:59 2008
+Version 0.11
+
+- Updated export list
+- Minor code cleanup
+
+========================================================================
+
+Thu Nov 15 01:02:19 2007
+Version 0.10
+
+- Changed the format of Termite from an "included in Gambit" format to 
+  a Gambit library format
+
+========================================================================
