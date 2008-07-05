@@ -900,7 +900,6 @@
 ;; Initialization
 
 (process-links-set! (self) '())
-(random-source-randomize! default-random-source)
 
 (define (node-init node)
   (start-tcp-server (node-port node) start-messenger)

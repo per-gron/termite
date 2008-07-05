@@ -3,17 +3,24 @@
 ;;
 ;; Version 4 UUID, see section 4.4
 
+(define random-integer-65536
+  (let* ((rs (make-random-source))
+         (ri (random-source-make-integers rs)))
+    (random-source-randomize! rs)
+	(lambda ()
+	  (ri 65536))))
+
 (define (make-uuid)
   (define hex
     '#(#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\A #\B #\C #\D #\E #\F))
-  (let ((n1 (random-integer 65536))
-        (n2 (random-integer 65536))
-        (n3 (random-integer 65536))
-        (n4 (random-integer 65536))
-        (n5 (random-integer 65536))
-        (n6 (random-integer 65536))
-        (n7 (random-integer 65536))
-        (n8 (random-integer 65536)))
+  (let ((n1 (random-integer-65536))
+        (n2 (random-integer-65536))
+        (n3 (random-integer-65536))
+        (n4 (random-integer-65536))
+        (n5 (random-integer-65536))
+        (n6 (random-integer-65536))
+        (n7 (random-integer-65536))
+        (n8 (random-integer-65536)))
     (string->symbol
      (string
       ;; time_lo
