@@ -1,4 +1,10 @@
 ========================================================================
+Fri Jul  4 23:14:48 2008
+
+- Fixed the bug with "default-random-source" not being defined
+- Moved stuff from termite/termite to termite/ in svn repository
+
+========================================================================
 Mon Jun 16 00:22:38 2008
 
 - Clean up code, remove experimental nameserver stuff as it is not
