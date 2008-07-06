@@ -1,7 +1,3 @@
-#! /usr/local/Gambit-C/bin/gsi -:dari1
-
-(init)
-
 (define-type kons
   id: 713cb0a4-16ea-4b18-a18e-7a9e33e7b92b
   unprintable:
