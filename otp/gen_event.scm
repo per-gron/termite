@@ -1,5 +1,3 @@
-#!/usr/local/Gambit-C/bin/gsi -:dar1
-
 ;; Erlang/OTP-like behavior for "event handlers"
 
 ;;; "Types" for the functions in a EVENT-HANDLER

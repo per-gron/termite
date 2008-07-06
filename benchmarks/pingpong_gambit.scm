@@ -1,5 +1,3 @@
-#!/usr/local/Gambit-C/bin/gsi -:dar1
-
 (define (iota n)
   (if (= n 0)
       '()

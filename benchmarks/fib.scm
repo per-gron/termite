@@ -1,5 +1,3 @@
-#!/usr/local/Gambit-C/bin/gsi -:dar1
-
 (include "bench.scm")
 
 (define (fib n)

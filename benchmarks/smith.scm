@@ -1,5 +1,3 @@
-#!/usr/local/Gambit-C/bin/gsi -:dar1
-
 ;; Smith Waterman string matching algorithm Scheme version (direct
 ;; translation of the Erlang version)
 ;;

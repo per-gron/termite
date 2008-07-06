@@ -1,7 +1,3 @@
-#!/usr/local/Gambit-C/bin/gsi -:dar1
-
-(init)
-
 (include "bench.scm")
 
 (define (main n)

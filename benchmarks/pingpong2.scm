@@ -1,5 +1,3 @@
-#!/usr/local/Gambit-C/bin/gsi -:dar1
-
 (define (main #!optional (len "42"))
   (cond
    ((equal? (current-node) node1)
