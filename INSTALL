@@ -4,7 +4,7 @@
 
 #2 Get the latest Termite and put it in Gambit's lib/ directory
 
-$ cd /usr/lobal/Gambit-C/current/lib
+$ cd /usr/local/Gambit-C/current/lib
 $ svn checkout http://termite.googlecode.com/svn/trunk/ termite-read-only
 
 #3 Compile Termite (optional)
