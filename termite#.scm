@@ -18,8 +18,8 @@
 			  migrate-task migrate/proxy 
 			  ;; Useful condition reporting/logging procedures
 			  warning debug info
-			  ;; Initialize a node
-			  node-init
+			  ;; Node stuff
+			  node-init node? node-host node-port 
 			  ;; Nameserver mechanism
 			  make-nameserver-node 
 			  ;; OTP-style stuff (genserver)
@@ -33,7 +33,7 @@
 			  ;; default init and node names for convenience
 			  init node1 node2
 			  *termite-nameserver-port*
-			  nameserver 
+			  *termite-cookie*
 			  ;; Useful
 			  ping
 			  ))
