@@ -2,12 +2,11 @@
 
 #1 Install the latest Gambit-C
 
-#2 Get Termite and untar it in Gambit's lib/ directory
+#2 Get the latest Termite and put it in Gambit's lib/ directory
 
 cd /usr/lobal/Gambit-C/current/lib
 
-wget http://toute.ca/termite.tar.gz
-tar -xzvf termite.tar.gz
+svn checkout http://termite.googlecode.com/svn/trunk/ termite-read-only
 
 # Optional:
 # Manually copy the "tsi" file from Termite's directory to 
