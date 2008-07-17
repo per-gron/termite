@@ -80,7 +80,7 @@
 
 ;; Base exception handler for Termite processes.
 (define (base-exception-handler e)
-  (##continuation-capture
+  (continuation-capture
    (lambda (k)
 	 (let ((log-crash 
 			 (lambda (e)
@@ -89,11 +89,12 @@
 				 (call-with-output-string ""
 										  (lambda (port)
 											(display "#|\n" port)
-											(##display-exception-in-context
+											(display-exception-in-context
 											 e
 											 k
 											 port)
-											(##cmd-b 0 k port)
+											; todo: provide a safe wrapper in Gambit runtime?
+											(##cmd-b k port 0) 
 											(display "|#\n" port)))))))
 	   (cond
 		 ;; Propagated Termite exception?
