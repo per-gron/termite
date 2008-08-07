@@ -39,33 +39,6 @@
 			  ))
 
 
-(##define-macro (define-macro pattern . rest)
-
-  (define (form-size parms) ; this definition must match the one in "_eval.scm"
-    (let loop ((lst parms) (n 1))
-      (cond ((pair? lst)
-             (let ((parm (car lst)))
-               (if (memq parm '(#!optional #!key #!rest))
-                 (- n)
-                 (loop (cdr lst)
-                       (+ n 1)))))
-            ((null? lst)
-             n)
-            (else
-             (- n)))))
-
-  (let ((src `(lambda ,(cdr pattern) ,@rest)))
-    `(begin
-       (##define-macro ,pattern ,@rest)
-       (##top-cte-add-macro!
-        ##interaction-cte
-        ',(car pattern)
-        (##make-macro-descr
-         #f
-         ',(form-size (cdr pattern))
-         ,src
-         #f)))))
-
 (##define-macro (compile-time-load filename)
   (load filename)
   #f)
