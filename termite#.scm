@@ -4,7 +4,7 @@
 ;; This is the declaration file for the Termite system
 (##namespace ("termite#" 
 			  ;; Termite "primordials"
-			  self ! ? ?? !? on make-node spawn 
+			  self ! ? ?? !? on make-node spawn pid? 
 			  spawn-link remote-spawn remote-spawn-link
 			  ;; Useful
 			  make-tag current-node
