@@ -7,12 +7,7 @@
 $ cd /usr/local/Gambit-C/current/lib
 $ svn checkout http://termite.googlecode.com/svn/trunk/ termite
 
-#3 Compile Termite (optional)
-
-$ cd /usr/local/Gambit-C/current/lib/termite
-$ gsc termite
-
-#4 Copy the tsi script to Gambit's bin directory (optional) 
+#3 Copy the tsi script to Gambit's bin directory (optional) 
 # That's for convenience so you can start a console that acts 
 # like gsi but has Termite already loaded
 
