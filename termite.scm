@@ -1,4 +1,4 @@
-;; Copyright (C) 2005-2008 by Guillaume Germain, All Rights Reserved.
+;; Copyright (C) 2005-2009 by Guillaume Germain, All Rights Reserved.
 ;; File: "termite.scm"
 
 ;; this is the main file for the Termite system
@@ -7,10 +7,13 @@
 (##include "~~/lib/gambit#.scm")
 (##include "termite#.scm")
 
+(declare
+  (standard-bindings)
+  (extended-bindings)
+  (block))
+
 ;; ----------------------------------------------------------------------------
 ;; System configuration & global data
-
-(define *termite-cookie* (getenv "TERMITE_COOKIE" #f))
 
 (define current-node (lambda () (error "uninitialized node")))
 
@@ -81,38 +84,38 @@
 ;; Base exception handler for Termite processes.
 (define (base-exception-handler e)
   (continuation-capture
-   (lambda (k)
-	 (let ((log-crash 
-			 (lambda (e)
-			   (termite-log
-				 'error
-				 (call-with-output-string ""
-										  (lambda (port)
-											(display "#|\n" port)
-											(display-exception-in-context
-											 e
-											 k
-											 port)
-											; todo: provide a safe wrapper in Gambit runtime?
-											(##cmd-b k port 0) 
-											(display "|#\n" port)))))))
-	   (cond
-		 ;; Propagated Termite exception?
-		 ((termite-exception? e)
-		  (if (not (eq? (termite-exception-reason e) 'normal))
-			  (log-crash (termite-exception-object e)))
-		  (for-each
-			(lambda (pid) (! pid e))
-			(process-links (self)))
-		  (halt!))
-		 ;; Gambit exception in the current process
-		 (else
-		   (log-crash e)
-		   (for-each
-			 (lambda (pid)
-			   (! pid (make-termite-exception (self) 'failure e)))
-			 (process-links (self)))
-		   (halt!)))))))
+    (lambda (k)
+      (let ((log-crash 
+              (lambda (e)
+                (termite-log
+                  'error
+                  (call-with-output-string ""
+                                           (lambda (port)
+                                             (display "#|\n" port)
+                                             (display-exception-in-context
+                                               e
+                                               k
+                                               port)
+                                             ;; todo: provide a safe wrapper in Gambit runtime?
+                                             (##cmd-b k port 0) 
+                                             (display "|#\n" port)))))))
+        (cond
+          ;; Propagated Termite exception?
+          ((termite-exception? e)
+           (if (not (eq? (termite-exception-reason e) 'normal))
+               (log-crash (termite-exception-object e)))
+           (for-each
+             (lambda (pid) (! pid e))
+             (process-links (self)))
+           (halt!))
+          ;; Gambit exception in the current process
+          (else
+            (log-crash e)
+            (for-each
+              (lambda (pid)
+                (! pid (make-termite-exception (self) 'failure e)))
+              (process-links (self)))
+            (halt!)))))))
 
 
 ;; * Start a new process executing the code in 'thunk'.
@@ -894,8 +897,8 @@
 		  (msg (debug "ping-server ignored message" msg)))
 		(loop)))))
 
-(define (ping node)
-  (!? (remote-service 'ping-server node) 'ping 1.0 'no-reply))
+(define (ping node #!optional (timeout 1.0))
+  (!? (remote-service 'ping-server node) 'ping timeout 'no-reply))
 
 ;; ----------------------------------------------------------------------------
 ;; Initialization
