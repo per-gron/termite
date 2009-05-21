@@ -1,14 +1,40 @@
 ========================================================================
+Wed May 20 23:52:15 2009
+
+Added concept of process naming.  It greatly helps debugging.  Calling
+ the 'top' procedure in the console will show something like this:
+
+> (top)
+
+*** THREAD LIST:
+#<thread #1 primordial>       RUNNING
+#<thread #2 termite-dispatcher> WAITING #<condition-variable #3 #f>
+#<thread #4 termite-linker>   WAITING #<condition-variable #5 #f>
+#<thread #6 termite-spawner>  WAITING #<condition-variable #7 #f>
+#<thread #8 termite-publisher> WAITING #<condition-variable #9 #f>
+#<thread #10 termite-logger>  WAITING #<condition-variable #11 #f>
+#<thread #12 termite-ping-server> WAITING #<condition-variable #13 #f>
+#<thread #14 termite-publisher-dictionary> WAITING #<condition-variable #15 #f>
+#<thread #16 termite-tcp-server> WAITING #<input-port #17 (tcp-server 3001)>
+
+
+- Fixed and improved error logging a bit, should be more helpful now and
+ is up-to-date with Gambit's changed to the 'display' procedure.
+
+
+========================================================================
 Fri Jul  4 23:14:48 2008
 
 - Fixed the bug with "default-random-source" not being defined
 - Moved stuff from termite/termite to termite/ in svn repository
+
 
 ========================================================================
 Mon Jun 16 00:22:38 2008
 
 - Clean up code, remove experimental nameserver stuff as it is not
   really needed
+
 
 ========================================================================
 Thu Mar 13 00:39:57 2008
