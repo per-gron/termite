@@ -52,15 +52,15 @@
 
 ;; nodes
 (define-type node
-			 id: 8992144e-4f3e-4ce4-9d01-077576f98bc5
-			 read-only:
-			 host
-			 port)
+  id: 8992144e-4f3e-4ce4-9d01-077576f98bc5
+  read-only:
+  host
+  port)
 
 ;; tags
 (define-type tag
-			 id: efa4f5f8-c74c-465b-af93-720d44a08374
-			 (uuid init: #f))
+  id: efa4f5f8-c74c-465b-af93-720d44a08374
+  (uuid init: #f))
 
 ;; * Test whether 'obj' is a pid.
 (define (pid? obj)
@@ -69,10 +69,10 @@
 
 ;; NOTE It might be better to integrate with Gambit's exception mechanism
 (define-type termite-exception
-			 id: 6a3a285f-02c4-49ac-b00a-aa57b1ad02cf
-			 origin
-			 reason
-			 object)
+  id: 6a3a285f-02c4-49ac-b00a-aa57b1ad02cf
+  origin
+  reason
+  object)
 
 
 ;; ----------------------------------------------------------------------------
@@ -89,16 +89,10 @@
               (lambda (e)
                 (termite-log
                   'error
-                  (call-with-output-string ""
-                                           (lambda (port)
-                                             (display "#|\n" port)
-                                             (display-exception-in-context
-                                               e
-                                               k
-                                               port)
-                                             ;; todo: provide a safe wrapper in Gambit runtime?
-                                             (##cmd-b k port 0) 
-                                             (display "|#\n" port)))))))
+                  (list
+                    (call-with-output-string ""
+                      (lambda (port)
+                        (display-exception-in-context e k port))))))))
         (cond
           ;; Propagated Termite exception?
           ((termite-exception? e)
@@ -119,37 +113,38 @@
 
 
 ;; * Start a new process executing the code in 'thunk'.
-(define (spawn thunk #!key (links '()))
+(define (spawn thunk #!key (links '()) (name 'anonymous))
   (let ((t (make-thread
 			 (lambda ()
 			   (with-exception-handler
 				 base-exception-handler
 				 thunk)
-			   (shutdown!)))))
+			   (shutdown!))
+             name)))
 	(thread-specific-set! t links)
 	(thread-start! t)
 	t))
 
 
-(define (spawn-linked-to to thunk)
-  (spawn thunk links: (list to)))
+(define (spawn-linked-to to thunk #!key (name 'anonymous-linked-to))
+  (spawn thunk links: (list to) name: name))
 
 
 ;; * Start a new process with a bidirectional link to the current
 ;; process.
-(define (spawn-link thunk)
-  (let ((pid (spawn thunk links: (list (self)))))
+(define (spawn-link thunk #!key (name 'anonymous-linked))
+  (let ((pid (spawn thunk links: (list (self)) name: name)))
 	(outbound-link pid)
 	pid))
 
 
 ;; * Start a new process on remote node 'node', executing the code 
 ;; in 'thunk'.
-(define (remote-spawn node thunk #!key (links '()))
+(define (remote-spawn node thunk #!key (links '()) (name 'anonymous-remote))
   (if (equal? node (current-node))
-	  (spawn thunk links: links)
+	  (spawn thunk links: links name: name)
 	  (!? (remote-service 'spawner node)
-		  (list 'spawn thunk links))))
+		  (list 'spawn thunk links name))))
 
 
 ;; * Start a new process on remote node 'node', with a bidirectional
@@ -382,15 +377,15 @@
 
 ;; Wraps 'pid's representing Gambit output ports.
 (define-type termite-output-port
-			 id: b0c30401-474c-4e83-94b4-d516e00fe363
-			 unprintable:
-			 pid)
+  id: b0c30401-474c-4e83-94b4-d516e00fe363
+  unprintable:
+  pid)
 
 ;; Wraps 'pid's representing Gambit input ports.
 (define-type termite-input-port
-			 id: ebb22fcb-ca61-4765-9896-49e6716471c3
-			 unprintable:
-			 pid)
+  id: ebb22fcb-ca61-4765-9896-49e6716471c3
+  unprintable:
+  pid)
 
 ;; Start a process representing a Gambit output port.
 (define (spawn-output-port port #!optional (serialize? #f))
@@ -409,7 +404,8 @@
 			  (where (procedure? proc))
 			  (proc port))
 			(x (warning "unknown message sent to output port: " x)))
-		  (loop))))))
+		  (loop)))
+      name: 'termite-output-port)))
 
 ;; Start a process representing a Gambit input port.
 (define (spawn-input-port port #!optional (serialize? #f))
@@ -428,7 +424,8 @@
 			 (where (procedure? proc))
 			 (! from (list token (proc port))))
 			(x (warning "unknown message sent to input port: " x)))
-		  (loop))))))
+		  (loop)))
+      name: 'termite-input-port)))
 
 ;; IO parameterization
 ;; (define current-termite-input-port (make-parameter #f))
@@ -571,20 +568,22 @@
 
 		  (msg
 			(warning "serializing-output-port ignored message: " msg)))
-		(loop)))))
+		(loop)))
+    name: 'termite-serializing-output-port))
 
 
 (define (start-serializing-active-input-port port receiver)
   (spawn-link
-	(lambda ()
-	  (let loop ()
-		(let ((data (deserialize port)))
-		  ;; to receive exceptions...
-		  (? 0 'ok)
-		  ;; (debug in: data)
-		  (if (eof-object? data) (shutdown!))
-		  (! receiver (list (self) data))
-		  (loop))))))
+    (lambda ()
+      (let loop ()
+        (let ((data (deserialize port)))
+          ;; to receive exceptions...
+          (? 0 'ok)
+          ;; (debug in: data)
+          (if (eof-object? data) (shutdown!))
+          (! receiver (list (self) data))
+          (loop))))
+    name: 'termite-serializing-active-input-port))
 
 
 ;; a tcp server listens on a certain port for new tcp connection
@@ -598,7 +597,8 @@
 	  (lambda ()
 		(let loop () 
 		  (on-connect (read tcp-server-port)) ;; io override
-		  (loop))))))
+		  (loop)))
+      name: 'termite-tcp-server)))
 
 
 ;; MESSENGERs act as proxies for sockets to other nodes
@@ -625,7 +625,8 @@
 
 			  (! out (list 'write (current-node)))
 
-			  (messenger-loop node in out))))))))
+			  (messenger-loop node in out))))))
+    name: 'termite-outbound-messenger))
 
 
 ;; start a MESSENGER for an 'inbound' connection (another node
@@ -646,7 +647,8 @@
 			  ((,in node)
 			   ;; registering messenger to local dispatcher
 			   (! dispatcher (list 'register (self) node))
-			   (messenger-loop node in out)))))))))
+			   (messenger-loop node in out)))))))
+    name: 'termite-inbound-messenger))
 
 
 (define (messenger-loop node in out)
@@ -711,7 +713,8 @@
 
 		  (msg
 			(warning "dispatcher ignored message: " msg) ;; uh...
-			(loop known-nodes)))))))
+			(loop known-nodes)))))
+    name: 'termite-dispatcher))
 
 
 ;; ----------------------------------------------------------------------------
@@ -734,7 +737,8 @@
 			   (warning "in linker-loop: unknown object"))))
 		  (msg
 			(warning "linker ignored message: " msg)))
-		(loop)))))
+		(loop)))
+    name: 'termite-linker))
 
 
 ;; Remote spawning
@@ -744,12 +748,13 @@
 	(lambda ()
 	  (let loop ()
 		(recv
-		  ((from tag ('spawn thunk links))
-		   (! from (list tag (spawn thunk links: links))))
+		  ((from tag ('spawn thunk links name))
+		   (! from (list tag (spawn thunk links: links name: name))))
 
 		  (msg
 			(warning "spawner ignored message: " msg)))
-		(loop)))))
+		(loop)))
+    name: 'termite-spawner))
 
 
 ;; the PUBLISHER is used to implement a mutable global env. for
@@ -773,7 +778,8 @@
 		  (msg
 			(warning "puslisher ignored message: " msg)))
 
-		(loop)))))
+		(loop)))
+    name: 'termite-publisher))
 
 (define (publish-service name pid)
   (! publisher (list 'publish name pid)))
@@ -834,13 +840,21 @@
 ;; might use similar style.)
 
 (define (report-event event port)
-  (display (list ";; --- " (formatted-current-time) " ---\n") port)
-  (display (list "Event type: " (car event) "\n") port)
-  (display (list "In process: " (cadr event) "\n") port)
-  (display (list "On node: " (current-node) "\n") port)
-  (write (caddr event) port)
-  (newline port)
-  (force-output port)
+  (match event
+    ((type who messages)
+     (with-output-to-port port
+       (lambda ()
+         (newline)
+         (display "[")
+         (display type)
+         (display "] ")
+         (display (formatted-current-time))
+         (newline)
+         (display who)
+         (newline)
+         (for-each (lambda (m) (display m) (newline)) messages)
+         (force-output))))
+    (_ (display "catch-all rule invoked in reporte-event")))
   port)
 
 (define file-output-log-handler
@@ -849,9 +863,9 @@
 	(lambda (args)
 	  (match args
 		((filename) 
-		 (open-output-file (list path: filename
-								 create: 'maybe
-								 append: #t)))))
+         (open-output-file (list path: filename
+                                 create: 'maybe
+                                 append: #t)))))
 	;; event
 	report-event
 	;; call
@@ -863,8 +877,8 @@
 
 
 ;; 'type' is a keyword (error warning info debug)
-(define (termite-log type message)
-  (event-manager:notify logger (list type (self) message)))
+(define (termite-log type message-list)
+  (event-manager:notify logger (list type (self) message-list)))
 
 (define (warning . terms)
   (termite-log 'warning terms))
@@ -876,7 +890,7 @@
   (termite-log 'debug terms))
 
 (define logger 
-  (let ((logger (event-manager:start)))
+  (let ((logger (event-manager:start name: 'termite-logger)))
 	(event-manager:add-handler logger
 							   (make-simple-event-handler
 								 report-event
@@ -895,7 +909,8 @@
 		  ((from tag 'ping) 
 		   (! from (list tag 'pong)))
 		  (msg (debug "ping-server ignored message" msg)))
-		(loop)))))
+		(loop)))
+    name: 'termite-ping-server))
 
 (define (ping node #!optional (timeout 1.0))
   (!? (remote-service 'ping-server node) 'ping timeout 'no-reply))

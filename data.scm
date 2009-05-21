@@ -2,10 +2,20 @@
 
 ;; (it would be "better" if those were implemented functionally)
 
+(define (data-make-process-name type)
+  (string->symbol 
+    (string-append 
+      (symbol->string 
+        (thread-name 
+          (current-thread))) 
+      "-"
+      (symbol->string type))))
+
 ;; ----------------------------------------------------------------------------
 ;; Cells
 
-(define (make-cell . content)
+(define (make-cell #!key (name (data-make-process-name 'cell))
+                   #!rest content)
   (spawn
     (lambda ()
       (let loop ((content (if (pair? content)
@@ -15,13 +25,14 @@
           ((from tag 'empty?)
            (! from (list tag (eq? (void) content)))
            (loop content))
-        
+
           ((from tag 'ref)
            (! from (list tag content))
            (loop content))
-	
+
           (('set! content)
-           (loop content)))))))
+           (loop content)))))
+    name: name))
 
 
 (define (cell-ref cell)
@@ -42,41 +53,43 @@
 ;; ----------------------------------------------------------------------------
 ;; Dictionary
 
-(define (make-dict)
+(define (make-dict #!key (name (data-make-process-name 'dictionary)))
   (spawn
     (lambda ()
       (let ((table (make-table test: equal?
                                init: #f)))
         (let loop ()
           (recv
-			((from tag ('dict?))
-			 (! from (list tag #t)))
+            ((from tag ('dict?))
+             (! from (list tag #t)))
 
-			((from tag ('dict-length))
-			 (! from (list tag (table-length table))))
+            ((from tag ('dict-length))
+             (! from (list tag (table-length table))))
 
-			((from tag ('dict-ref key))
-			 (! from (list tag (table-ref table key))))
+            ((from tag ('dict-ref key))
+             (! from (list tag (table-ref table key))))
 
-			(('dict-set! key)
-			 (table-set! table key))
+            (('dict-set! key)
+             (table-set! table key))
 
-			(('dict-set! key value)
-			 (table-set! table key value))
+            (('dict-set! key value)
+             (table-set! table key value))
 
-			((from tag ('dict-search proc)) 
-			 (! from (list tag (table-search proc table))))
+            ((from tag ('dict-search proc)) 
+             (! from (list tag (table-search proc table))))
 
-			(('dict-for-each proc)
-			 (table-for-each proc table))
+            (('dict-for-each proc)
+             (table-for-each proc table))
 
-			((from tag ('dict->list))
-			 (! from (list tag (table->list table))))
+            ((from tag ('dict->list))
+             (! from (list tag (table->list table))))
 
-			((msg 
-			   (warning (list ignored: msg)))))
+            ((msg 
+               (warning (list ignored: msg)))))
 
-          (loop))))))
+          (loop))))
+
+    name: name))
 
 (define (dict? dict)
   (!? dict (list 'dict?) 1 #f)) ;; we only give a second to reply to this
@@ -124,7 +137,7 @@
 ;; ----------------------------------------------------------------------------
 ;; Bag
 
-(define (make-bag)
+(define (make-bag #!key (name (data-make-process-name 'bag)))
   (spawn
     (lambda ()
       (let ((table (make-table test: equal?
@@ -133,29 +146,30 @@
           (recv
             ((from tag ('bag?))
              (! from (list tag #t)))
-          
+
             ((from tag ('bag-length))
              (! from (list tag (table-length table))))
-          
+
             (('bag-add! elt)
              (table-set! table elt #t))
-          
+
             (('bag-remove! elt)
              (table-set! table elt))
-          
+
             ((from tag ('bag-member? elt))
              (table-ref table elt))
-          
+
             ((from tag ('bag-search proc)) 
              (! from (list tag (table-search (lambda (k v) (proc k)) table))))
-          
+
             (('bag-for-each proc)
              (table-for-each (lambda (k v) (proc k)) table))
-          
+
             ((from tag ('bag->list))
              (! from (list tag (map car (table->list table))))))
 
-          (loop))))))
+          (loop))))
+    name: name))
 
 
 (define (bag? bag)

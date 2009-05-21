@@ -39,15 +39,15 @@
       (('stop reason)
        ((server-plugin-terminate plugin) reason state)))))
 
-(define (internal-server-start spawner plugin args)
-  (let ((server (spawner (lambda () (make-server plugin)))))
+(define (internal-server-start spawner plugin args name)
+  (let ((server (spawner (lambda () (make-server plugin)) name: name)))
     (!? server (list 'init args) *server-timeout*) 
     server))
 
-(define (server:start plugin args)
-  (internal-server-start spawn plugin args))
+(define (server:start plugin args #!key (name 'anonymous-generic-server))
+  (internal-server-start spawn plugin args name))
 
-(define (server:start-link plugin args)
+(define (server:start-link plugin args #!key (name 'anonymous-linked-generic-server))
   (internal-server-start spawn-link plugin args))
 
 (define (server:call server term)
