@@ -1,4 +1,4 @@
-;; Copyright (C) 2005-2008 by Guillaume Germain, All Rights Reserved.
+;; Copyright (C) 2005-2009 by Guillaume Germain, All Rights Reserved.
 ;; File: "termite.scm"
 
 ;; this is the main file for the Termite system
@@ -42,7 +42,10 @@
         data
         otp/gen_event
         match)
-
+(declare
+  (standard-bindings)
+  (extended-bindings)
+  (block))
 
 ;; ----------------------------------------------------------------------------
 ;; Services
@@ -50,60 +53,62 @@
 ;; LINKER (to establish exception-propagation links between processes)
 (define linker
   (spawn
-   (lambda ()
-     (let loop ()
-       (recv
-        (('link from to)
-         (cond
-          ((process? from)
-           (process-links-set! from (cons to (process-links from)))) ;;;;;;;;;;
-          ((upid? from)
-           (! (remote-service 'linker (upid-node from))
-              (list 'link from to)))
-          (else
-           (warning "in linker-loop: unknown object"))))
-        (msg
-         (warning "linker ignored message: " msg)))
-       (loop)))))
+	(lambda ()
+	  (let loop ()
+		(recv
+		  (('link from to)
+		   (cond
+			 ((process? from)
+			  (process-links-set! from (cons to (process-links from)))) ;;;;;;;;;;
+			 ((upid? from)
+			  (! (remote-service 'linker (upid-node from))
+				 (list 'link from to)))
+			 (else
+			   (warning "in linker-loop: unknown object"))))
+		  (msg
+			(warning "linker ignored message: " msg)))
+		(loop)))
+    name: 'termite-linker))
 
 
 ;; Remote spawning
 ;; the SPAWNER answers remote-spawn request
 (define spawner
   (spawn
-   (lambda ()
-     (let loop ()
-       (recv
-        ((from tag ('spawn thunk links))
-         (! from (list tag (spawn thunk links: links))))
-        
-        (msg
-         (warning "spawner ignored message: " msg)))
-       (loop)))))
+	(lambda ()
+	  (let loop ()
+		(recv
+		  ((from tag ('spawn thunk links name))
+		   (! from (list tag (spawn thunk links: links name: name))))
 
+		  (msg
+			(warning "spawner ignored message: " msg)))
+		(loop)))
+    name: 'termite-spawner))
 
 ;; the PUBLISHER is used to implement a mutable global env. for
 ;; process names
 (define publisher
   (spawn 
-   (lambda ()
-     (define dict (make-dict))
-     
-     (let loop ()
-       (recv
-        (('publish name pid)
-         (dict-set! dict name pid))
-        
-        (('unpublish name pid)
-         (dict-set! dict name))
-        
-        ((from tag ('resolve name))
-         (! from (list tag (dict-ref dict name))))
-        
-        (msg
-         (warning "puslisher ignored message: " msg)))
-       
-       (loop)))))
+	(lambda ()
+	  (define dict (make-dict))
+
+	  (let loop ()
+		(recv
+		  (('publish name pid)
+		   (dict-set! dict name pid))
+
+		  (('unpublish name pid)
+		   (dict-set! dict name))
+
+		  ((from tag ('resolve name))
+		   (! from (list tag (dict-ref dict name))))
+
+		  (msg
+			(warning "puslisher ignored message: " msg)))
+
+		(loop)))
+    name: 'termite-publisher))
 
 (define (publish-service name pid)
   (! publisher (list 'publish name pid)))
@@ -194,37 +199,40 @@
 ;; might use similar style.)
 
 (define (report-event event port)
-  (let ((display
-         (lambda list
-           (for-each (lambda (x)
-                       (display x port))
-                     list))))
-    (display ";; --- " (formatted-current-time) " ---\n")
-    (display "Event type: " (car event) "\n")
-    (display "In process: " (cadr event) "\n")
-    (display "On node: " (current-node) "\n")
-    (display (caddr event)))
-  (newline port)
-  (force-output port)
+  (match event
+    ((type who messages)
+     (with-output-to-port port
+       (lambda ()
+         (newline)
+         (display "[")
+         (display type)
+         (display "] ")
+         (display (formatted-current-time))
+         (newline)
+         (display who)
+         (newline)
+         (for-each (lambda (m) (display m) (newline)) messages)
+         (force-output))))
+    (_ (display "catch-all rule invoked in reporte-event")))
   port)
 
 (define file-output-log-handler
   (make-event-handler
-   ;; init
-   (lambda (args)
-     (match args
-       ((filename) 
-        (open-output-file (list path: filename
-                                create: 'maybe
-                                append: #t)))))
-   ;; event
-   report-event
-   ;; call
-   (lambda (term port)
-     (values (void) port))
-   ;; shutdown
-   (lambda (reason port)
-     (close-output-port port))))
+	;; init
+	(lambda (args)
+	  (match args
+		((filename) 
+         (open-output-file (list path: filename
+                                 create: 'maybe
+                                 append: #t)))))
+	;; event
+	report-event
+	;; call
+	(lambda (term port)
+	  (values (void) port))
+	;; shutdown
+	(lambda (reason port)
+	  (close-output-port port))))
 
 
 ;; 'type' is a keyword (error warning info debug)
@@ -233,7 +241,7 @@
    (event-manager:notify logger (list type (self) message))))
 
 (define logger 
-  (let ((logger (event-manager:start)))
+  (let ((logger (event-manager:start name: 'termite-logger)))
 	(event-manager:add-handler logger
                                    (make-simple-event-handler
                                     report-event
@@ -252,10 +260,11 @@
 		  ((from tag 'ping) 
 		   (! from (list tag 'pong)))
 		  (msg (debug "ping-server ignored message" msg)))
-		(loop)))))
+		(loop)))
+    name: 'termite-ping-server))
 
-(define (ping node)
-  (!? (remote-service 'ping-server node) 'ping 1.0 'no-reply))
+(define (ping node #!optional (timeout 1.0))
+  (!? (remote-service 'ping-server node) 'ping timeout 'no-reply))
 
 ;; ----------------------------------------------------------------------------
 ;; Initialization

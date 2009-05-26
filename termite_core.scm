@@ -9,11 +9,13 @@
         exception
         match)
 
+(declare
+  (standard-bindings)
+  (extended-bindings)
+  (block))
 
 ;; ----------------------------------------------------------------------------
 ;; System configuration & global data
-
-(define *termite-cookie* (getenv "TERMITE_COOKIE" #f))
 
 (define current-node (lambda () (error "uninitialized node")))
 
@@ -71,9 +73,9 @@
 
 (define termite-log-fun (make-parameter #f))
 
-(define (termite-log type message)
+(define (termite-log type message-list)
   (and (termite-log-fun)
-       ((termite-log-fun) type message)))
+       ((termite-log-fun) type message-list)))
 
 (define (warning . terms)
   (termite-log 'warning terms))
@@ -103,16 +105,7 @@
                (call-with-output-string
                 ""
                 (lambda (port)
-                  (display "#|\n" port)
-                  (display-exception-in-context
-                   e
-                   k
-                   port)
-                  ;; todo: provide a safe
-                  ;; wrapper in Gambit
-                  ;; runtime?
-                  (##cmd-b k port 0 #f) 
-                  (display "|#\n" port)))))))
+                  (display-exception-in-context e k port)))))))
        (cond
         ;; Propagated Termite exception?
         ((termite-exception? e)
@@ -133,37 +126,38 @@
 
 
 ;; * Start a new process executing the code in 'thunk'.
-(define (spawn thunk #!key (links '()))
+(define (spawn thunk #!key (links '()) (name 'anonymous))
   (let ((t (make-thread
             (lambda ()
               (with-exception-handler
                base-exception-handler
                thunk)
-              (shutdown!)))))
+              (shutdown!))
+            name)))
     (thread-specific-set! t links)
     (thread-start! t)
     t))
 
 
-(define (spawn-linked-to to thunk)
-  (spawn thunk links: (list to)))
+(define (spawn-linked-to to thunk #!key (name 'anonymous-linked-to))
+  (spawn thunk links: (list to) name: name))
 
 
 ;; * Start a new process with a bidirectional link to the current
 ;; process.
-(define (spawn-link thunk)
-  (let ((pid (spawn thunk links: (list (self)))))
+(define (spawn-link thunk #!key (name 'anonymous-linked))
+  (let ((pid (spawn thunk links: (list (self)) name: name)))
 	(outbound-link pid)
 	pid))
 
 
 ;; * Start a new process on remote node 'node', executing the code 
 ;; in 'thunk'.
-(define (remote-spawn node thunk #!key (links '()))
+(define (remote-spawn node thunk #!key (links '()) (name 'anonymous-remote))
   (if (equal? node (current-node))
-	  (spawn thunk links: links)
+	  (spawn thunk links: links name: name)
 	  (!? (remote-service 'spawner node)
-		  (list 'spawn thunk links))))
+		  (list 'spawn thunk links name))))
 
 
 ;; * Start a new process on remote node 'node', with a bidirectional
@@ -404,7 +398,8 @@
           (where (procedure? proc))
           (proc port))
          (x (warning "unknown message sent to output port: " x)))
-        (loop))))))
+        (loop))))
+   name: 'termite-output-port))
 
 ;; Start a process representing a Gambit input port.
 (define (spawn-input-port port #!optional (serialize? #f))
@@ -423,7 +418,8 @@
           (where (procedure? proc))
           (! from (list token (proc port))))
          (x (warning "unknown message sent to input port: " x)))
-        (loop))))))
+        (loop))))
+   name: 'termite-input-port))
 
 ;; IO parameterization
 ;; (define current-termite-input-port (make-parameter #f))
@@ -566,7 +562,8 @@
         
         (msg
          (warning "serializing-output-port ignored message: " msg)))
-       (loop)))))
+       (loop)))
+   name: 'termite-serializing-output-port))
 
 
 (define (start-serializing-active-input-port port receiver)
@@ -579,7 +576,8 @@
          ;; (debug in: data)
          (if (eof-object? data) (shutdown!))
          (! receiver (list (self) data))
-         (loop))))))
+         (loop))))
+   name: 'termite-serializing-active-input-port))
 
 
 ;; a tcp server listens on a certain port for new tcp connection
@@ -593,7 +591,8 @@
      (lambda ()
        (let loop () 
          (on-connect (read tcp-server-port)) ;; io override
-         (loop))))))
+         (loop)))
+     name: 'termite-tcp-server)))
 
 
 ;; MESSENGERs act as proxies for sockets to other nodes
@@ -620,7 +619,8 @@
             
             (! out (list 'write (current-node)))
             
-            (messenger-loop node in out))))))))
+            (messenger-loop node in out))))))
+   name: 'termite-outbound-messenger))
 
 
 ;; start a MESSENGER for an 'inbound' connection (another node
@@ -641,7 +641,8 @@
            ((,in node)
             ;; registering messenger to local dispatcher
             (! dispatcher (list 'register (self) node))
-            (messenger-loop node in out)))))))))
+            (messenger-loop node in out)))))))
+   name: 'termite-inbound-messenger))
 
 
 (define (messenger-loop node in out)
@@ -706,5 +707,6 @@
         
         (msg
          (warning "dispatcher ignored message: " msg) ;; uh...
-         (loop known-nodes)))))))
+         (loop known-nodes)))))
+   name: 'termite-dispatcher))
 

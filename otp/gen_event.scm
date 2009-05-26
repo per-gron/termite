@@ -63,19 +63,23 @@
         handlers)
        (void)))))
 
-(define (internal-event-manager-start spawner handlers)
-  (let ((em (spawner event-manager)))
+(define (internal-event-manager-start spawner handlers name)
+  (let ((em (spawner event-manager name: name)))
     (for-each
      (lambda (handler)
        (event-manager:add-handler em handler))
      handlers)
     em))
 
-(define (event-manager:start . handlers)
-  (internal-event-manager-start spawn handlers))
+(define (event-manager:start 
+          #!key (name 'anonymous-event-manager)
+          #!rest handlers )
+  (internal-event-manager-start spawn handlers name))
 
-(define (event-manager:start-link . handlers)
-  (internal-event-manager-start spawn-link handlers))
+(define (event-manager:start-link 
+          #!key (name 'anonymous-linked-event-manager)
+          #!rest handlers )
+  (internal-event-manager-start spawn-link handlers name))
 
 (define (event-manager:add-handler event-manager handler . args)
   (! event-manager (list 'add-handler handler args)))
@@ -88,3 +92,22 @@
 
 (define (event-manager:stop event-manager)
   (! event-manager (list 'stop)))
+
+
+;; build a trivial event handler with no state, only invoking a
+;; callback on any event
+(define (make-simple-event-handler callback initial-state)
+  (make-event-handler
+   ;; INIT
+   (lambda (args)
+     initial-state)
+   ;; NOTIFY
+   (lambda (event state)
+     (callback event state))
+   ;; CALL
+   (lambda (args state)
+     (values (void) state))
+   ;; TERMINATE
+   (lambda (reason state)
+     (void))))
+

@@ -78,7 +78,7 @@
             (void))))
        
        (define (,maker ,@fields)
-         (,facade-maker (server:start ,plugin (list ,@fields))))
+         (,facade-maker (server:start ,plugin (list ,@fields) name: ',type)))
        
        ,@(map (lambda (getter)
                 `(define (,getter x)
