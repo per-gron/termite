@@ -7,6 +7,11 @@
 ;;; CALL      :: args   state  -> reply state
 ;;; TERMINATE :: reason state  -> void
 
+(import ../recv
+        ../termite_core
+        ../match
+        ../utils)
+
 (define-type event-handler
   id: 1d3007b8-c5aa-4090-ab55-e352040a4498
   read-only:
@@ -59,7 +64,7 @@
        (void)))))
 
 (define (internal-event-manager-start spawner handlers)
-  (let ((em (spawn event-manager)))
+  (let ((em (spawner event-manager)))
     (for-each
      (lambda (handler)
        (event-manager:add-handler em handler))
@@ -83,22 +88,3 @@
 
 (define (event-manager:stop event-manager)
   (! event-manager (list 'stop)))
-
-
-;; build a trivial event handler with no state, only invoking a
-;; callback on any event
-(define (make-simple-event-handler callback initial-state)
-  (make-event-handler
-   ;; INIT
-   (lambda (args)
-     initial-state)
-   ;; NOTIFY
-   (lambda (event state)
-     (callback event state))
-   ;; CALL
-   (lambda (args state)
-     (values (void) state))
-   ;; TERMINATE
-   (lambda (reason state)
-     (void))))
-

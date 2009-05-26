@@ -2,6 +2,10 @@
 
 ;; (it would be "better" if those were implemented functionally)
 
+(import termite_core
+        match
+        recv)
+
 ;; ----------------------------------------------------------------------------
 ;; Cells
 

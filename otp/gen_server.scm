@@ -7,6 +7,16 @@
 ;;; CAST      :: term   state -> state
 ;;; TERMINATE :: reason state -> void
 
+(import ../termite_core
+        ../recv)
+
+(export make-server-plugin
+        server:start
+        server:start-link
+        server:call
+        server:cast
+        server:stop)
+
 (define-type server-plugin
   id: 2ca2d07c-5d6a-44a8-98eb-422b2b8e7296
   read-only:
