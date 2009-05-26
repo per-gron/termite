@@ -26,7 +26,6 @@
  ;; default init and node names for convenience
  node1 node2
  ;; *termite-nameserver-port* By Per: This doesn't seem to be defined?
- *termite-cookie*
  ;; Useful
  ping
  
@@ -42,6 +41,7 @@
         data
         otp/gen_event
         match)
+
 (declare
   (standard-bindings)
   (extended-bindings)
